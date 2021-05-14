@@ -11,9 +11,11 @@ The processing pipeline takes in timestamped image frames of the subject's eye a
 
 The processing pipeline also outputs an [**annotated movie**](./sample_output/movie) indicating the bounding box and inferred boundaies of the pupil and the reflection of the IR light on the cornea of the subject. The latter is useful to correct changes in pupil location due to mouth movements which lead to motion of the whole eye ball in rodents. A sample annotated movie can be found under 
 \
- **Sample Annoteated Image**
+ **Sample Annotated Image**
 \
  <img src="./sample_output/annotated_frame/1.png" width = "218" height = "165">
+\
+ Under the hood the processing scripts take the intial bounding boxes defined by the user and fit ellipses to the dark or light regions that the bounding box overlaps in order to locate the boundaries of the pupil or corneal reflection, respectively. The bounding boxes and fitted ellipses are updated for each frame and blink events are detected based on failures to locate the pupil or corneal reflection.
 
 ## Materials
 
@@ -34,15 +36,18 @@ conda create --name <env_name> --file requirements.txt
 
 ## Running Code
 
-# Define bounding boxes
+### Define bounding boxes
 
-Launch GUI to define bounding box around pupil and corneal rerflection of IR light
+Launch GUI from command lineto define bounding box around pupil and corneal rerflection of IR light
 ```
 python minimal_eyetracker/define_seed.py
 ```
 follow instructions in terminal to define bounding boxes.
+\
+ <img src="./gui_demo/GUI_workflow.png">
+\
 
-# Run processing pipeline
+### Run processing pipeline
 
 Run processing pipeline with default arguments from command line
 ```
