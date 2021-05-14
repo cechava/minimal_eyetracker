@@ -4,7 +4,7 @@ The code contained in this repository implements a simple eyetracker developed b
 
 The processing pipeline takes in timestamped image frames of the subject's eye and information about the tiing of stimulus onset and ultimately outputs pupil size and movement values relative to the stimulus onset such as these sample plots:
 
-<img src="./sample_output/plots/parsed_timecourse/parsed_pupil_size_vs_time.png" width = "600" height = "400">
+<img src="./sample_output/plots/parsed_timecourse/parsed_pupil_size_vs_time.png" width = "300" height = "200">
 
 **Vertical dashed lines** indicate the boundaries of the 1-second period in which a visual stimulus was presented. **Light blue traces** indicate pupil metrics during individual stimulus presentations. The **black trace** indicates the average pupil metric value over time.
 
