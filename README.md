@@ -10,17 +10,43 @@ The processing pipeline takes in timestamped image frames of the subject's eye a
 
 
 The processing pipeline also outputs an [**annotated movie**](./sample_output/movie) indicating the bounding box and inferred boundaies of the pupil and the reflection of the IR light on the cornea of the subject. The latter is useful to correct changes in pupil location due to mouth movements which lead to motion of the whole eye ball in rodents. A sample annotated movie can be found under 
-
-
+\
+ **Sample Annoteated Image**
+\
+ <img src="./sample_output/annotated_frame/1.png" width = "218" height = "165">
 
 ## Materials
 
  The eyes of experimental subjects were illuminated with an [infrared light](https://www.amazon.com/Waterproof-Illuminator-Vision-Outdoor-Security/dp/B07NZ97VY4/ref=sr_1_19?_encoding=UTF8&c=ts&dchild=1&keywords=IR+Illuminators&qid=1621026769&s=security-surveillance&sr=1-19&ts_id=7161095011) and images were captured at a steady frame rate with a [CCD camera](https://www.alliedvision.com/en/products/cameras/detail/Manta/G-033.html)
-\
- **Sample Image**
 
- <img src="./sample_data/frames/1.png" width = "218" height = "165">
 
 ## Installation instructions
 
+A requirements.txt is provided with the repo containing the necessary packages for this code
+
+```
+# using pip
+pip install -r requirements.txt
+
+# using Conda
+conda create --name <env_name> --file requirements.txt
+```
+
 ## Running Code
+
+# Define bounding boxes
+
+Launch GUI to define bounding box around pupil and corneal rerflection of IR light
+```
+python minimal_eyetracker/define_seed.py
+```
+follow instructions in terminal to define bounding boxes.
+
+# Run processing pipeline
+
+Run processing pipeline with default arguments from command line
+```
+python process_data.py
+```
+
+Use --help for a list of possible user-defined parameters
