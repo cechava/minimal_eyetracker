@@ -22,7 +22,6 @@ import pylab as pl
 import seaborn as sns
 import pandas as pd
 import h5py
-sns.set_style("darkgrid", {"axes.facecolor": ".9"})
 
 # ==================================== miscellaneous functions ========================================
 def tryint(s):
@@ -279,6 +278,34 @@ def plot_whole_timecourse(tstamps,value,stim_on_times,blink_times,label,filename
     
     # Save figure
     fig.savefig(filename,dpi = 300)
+    plt.close()
+
+def make_parsed_plot(data_df, metric, label, figure_fn):
+    # Plot parsed metric timecourse
+    
+    fig, ax = pl.subplots(figsize = (8,5))
+    
+    # plot values over individual presentations 
+    sns.lineplot(data = data_df,x = 'Time',y = metric, units = 'Trial',color = 'b',estimator = None,ax = ax,\
+                 **dict(alpha=0.05))
+    # plot average value over time
+    sns.lineplot(data = data_df,x = 'Time',y = metric,color = 'k',ax = ax)
+
+    #mark stimulus onset and offset
+    ymin, ymax = ax.get_ylim()
+    ax.axvline(x=0, ymin=ymin, ymax = ymax, linewidth=1, color='k',linestyle='--')
+    ax.axvline(x=1, ymin=ymin, ymax = ymax, linewidth=1, color='k',linestyle='-.')
+    
+    # label axes
+    ax.set_xlabel('Time ASO',fontsize=16, weight = 'bold')
+    ax.set_ylabel('%s'%(label),fontsize=16, weight = 'bold')
+
+    # Only show ticks on the left and bottom spines
+    ax.yaxis.set_ticks_position('left')
+    ax.xaxis.set_ticks_position('bottom')
+    sns.despine(trim=True, offset=0, bottom=False, left=False, top = True, right = True,ax = ax)
+    
+    fig.savefig(figure_fn,dpi = 300, bbox_inches = 'tight')
     plt.close()
 
 def process_data(options):
@@ -664,6 +691,93 @@ def process_data(options):
         
     file_grp.close()
 
+def parse_data(options):
+    # Define directories
+    output_file_dir = os.path.join(options.output_dir,'files')
+    times_dir = os.path.join(options.source_dir,'times')
+
+    # Create output directories
+    output_plot_dir = os.path.join(options.output_dir,'plots/parsed_timecourse')
+    if not os.path.exists(output_plot_dir):
+        os.makedirs(output_plot_dir)
+
+    # Load and unpack key features
+    input_fn = os.path.join(output_file_dir,'full_session_eyetracker_data_sample_data.h5')
+    print 'Loading eyetracker feature info from :%s'%(input_fn)
+
+    file_grp = h5py.File(input_fn, 'r')#open file
+
+    frame_rate = float(file_grp.attrs['frame_rate'])
+
+    camera_time = file_grp['camera_time'][:]
+    blink_events = file_grp['blink_events'][:]
+    blink_times = file_grp['blink_times'][:]
+        
+    pupil_radius = file_grp['pupil_radius'][:]
+    pupil_aspect = file_grp['pupil_aspect_ratio'][:]
+    pupil_dist_rel = file_grp['pupil_dist_rel'][:]
+    pupil_motion_rel = file_grp['pupil_motion_rel'][:]
+
+    file_grp.close()
+
+    # Get stimulus onset times
+    para_file =  [f for f in os.listdir(times_dir) if f.endswith('.json')][0]#assuming a single file for all tiffs in run
+    print 'Getting paradigm info from: %s'%(os.path.join(times_dir, para_file))
+    with open(os.path.join(times_dir, para_file), 'r') as f:
+        trial_info = json.load(f)
+
+    baseline_frames = int(options.baseline_time*frame_rate)
+
+    iti_full_time = trial_info['trial00001']['iti_duration']/1E3#for pasing traces  
+    iti_post_time = iti_full_time - options.baseline_time
+    iti_post_frames = int(iti_post_time*frame_rate)
+
+    stim_on_time = trial_info['trial00001']['stim_on_times']/1E3#convert to secs
+    stim_off_time = trial_info['trial00001']['stim_off_times']/1E3#convert to sec
+    stim_dur_time = stim_off_time - stim_on_time
+    stim_dur_frames = int(stim_dur_time*frame_rate)
+
+    post_onset_frames = stim_dur_frames+iti_post_frames
+
+    # Get trial timecourse timestamps
+    trial_time = np.arange(0,(1.0/frame_rate)*(baseline_frames+stim_dur_frames+iti_post_frames),1/frame_rate) - options.baseline_time
+
+    # Initialize empty list
+    data_df = []
+    # Cycle trough individual stimulus presentations and save metrics to dataframe
+    for ntrial in range(0, len((trial_info))):
+        if ntrial%100 == 0:
+            print 'Parsing trial %d of %d'%(ntrial,len(trial_info))
+        trial_string = 'trial%05d'%(ntrial+1)
+        
+        # get times and indices of relevent events
+        stim_on_time = trial_info[trial_string]['stim_on_times']/1E3#convert to ms
+        on_idx = np.where(camera_time>=stim_on_time)[0][0]
+        start_idx = on_idx - baseline_frames
+        end_idx = on_idx + post_onset_frames
+        off_idx = on_idx + stim_dur_frames
+
+        # put in data frame
+        data_df.append(pd.DataFrame({'Time':trial_time,\
+                                     'Pupil_Size':pupil_radius[start_idx:end_idx] - np.mean(pupil_radius[start_idx:on_idx]),\
+                                     'Pupil_Motion':pupil_motion_rel[start_idx:end_idx] - np.mean(pupil_motion_rel[start_idx:on_idx]),\
+                                     'Trial':[ntrial for x in trial_time]
+                     }))
+    data_df = pd.concat(data_df,axis = 0)
+
+
+    # Output plots
+    print('Saving plots to: %s'%(output_plot_dir))
+    fig_fn = os.path.join(output_plot_dir,'parsed_pupil_size_vs_time.png')
+    make_parsed_plot(data_df,'Pupil_Size', 'Pupil Size (pixels)',fig_fn)
+
+    fig_fn = os.path.join(output_plot_dir,'parsed_pupil_motion_vs_time.png')
+    make_parsed_plot(data_df,'Pupil_Motion', 'Pupil Motion (pixels)',fig_fn)
+
+    # Save dataframe to file
+    print('Writing parsed data to %s'%(os.path.join(output_file_dir,'trial_parsed_metric_timecourse_df.pkl')))
+    data_df.to_pickle(os.path.join(output_file_dir,'trial_parsed_metric_timecourse_df.pkl'))
+
 def extract_options(options):
 
     parser = optparse.OptionParser()
@@ -677,7 +791,7 @@ def extract_options(options):
     parser.add_option('-f', '--smooth', action='store', dest='space_filt_size', default=5, help='size of box filter for smoothing images(integer)')
     parser.add_option('-t', '--timefilt', action='store', dest='time_filt_size', default=11, help='Size of median filter to smooth signals over time(integer)')
 
-    parser.add_option('-b', '--baseline', action='store', dest='baseline', default=1, help='Length of baseline period (secs) for trial parsing')
+    parser.add_option('-b', '--baseline', action='store', dest='baseline_time', default=1.0 , help='Length of baseline period (secs) for trial parsing')
 
 
     (options, args) = parser.parse_args(options)
@@ -694,6 +808,9 @@ def main(options):
     options = extract_options(options)
     print 'Processing raw frames'
     process_data(options)
+
+    print 'Parsing eyetrakcer metrics'
+    parse_data(options)
 
 
 if __name__ == '__main__':
