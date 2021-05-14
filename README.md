@@ -4,13 +4,14 @@ The code contained in this repository implements a simple eyetracker developed b
 
 The processing pipeline takes in timestamped image frames of the subject's eye and information about the tiing of stimulus onset and ultimately outputs pupil size and movement values relative to the stimulus onset such as these sample plots:
 
-![plot](./sample_output/plots/parsed_pupil_size_vs_time.png)
+![plot](./sample_output/plots/parsed_timecourse/parsed_pupil_size_vs_time.png)
 
 **Vertical dashed lines** indicate the boundaries of the 1-second period in which a visual stimulus was presented. **Light blue traces** indicate pupil metrics during individual stimulus presentations. The **black trace** indicates the average pupil metric value over time.
 
 
 
-The processing pipeline also outputs an **annotated movie** indicating the bounding box and inferred boundaies of the pupil and the reflection of the IR light on the cornea of the subject. The latter is useful to correct changes in pupil location due to mouth movements which lead to motion of the whole eye ball in rodents. A sample annotated movie can be found under >sample_output/movies
+The processing pipeline also outputs an **annotated movie** indicating the bounding box and inferred boundaies of the pupil and the reflection of the IR light on the cornea of the subject. The latter is useful to correct changes in pupil location due to mouth movements which lead to motion of the whole eye ball in rodents. A sample annotated movie can be found under 
+>sample_output/movies
 
 
 
